@@ -2,6 +2,10 @@ extern crate rand;
 
 use std::io::{self, Read};
 use std::fmt;
+use std::env;
+use std::fs::File;
+
+// type Op = String;
 
 struct Program {
     instructions: Vec<String>,
@@ -40,17 +44,129 @@ impl Program {
 
 fn read_input_stream() -> String {
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input)
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+
+    handle.read_to_string(&mut input)
         .expect("Failed to read file");
 
-    println!("Read in: {}", input);
+    // println!("Read in: {}", input);
 
     input
 }
 
 fn main() {
-    let input = read_input_stream();
-    let p = Program::parse(input);
+    let args: Vec<String> = env::args().collect();
 
-    println!("This is your parsed program {}", p);
+    let mut input = String::new();
+
+    if args.len() > 1 {
+        File::open(&args[1])
+            .expect("Unable to open file")
+            .read_to_string(&mut input)
+            .expect("Unable to read file");
+    } else {
+        input = read_input_stream();
+    }
+    println!("Parsing");
+    let program = Program::parse(input);
+    let mut pc = 0;
+    let memory_allocation = 30000;
+    let mut reserve = 1;
+    let mut datapointer = 0;
+    let mut memory: Vec<u8> = vec![0; memory_allocation];
+
+
+    println!("Running");
+
+    while pc < program.instructions.len() {
+        let ref instruction = program.instructions[pc];
+
+        match instruction.as_ref() {
+            ">" => {
+                datapointer += 1;
+                if datapointer >= memory.len() {
+                    reserve += 1;
+                    memory.resize(memory_allocation*reserve, 0);
+                }
+            },
+            "<" => datapointer -= 1,
+
+            "+" => {
+                let old_value = memory[datapointer];
+
+                if old_value == 255 {
+                    memory[datapointer] = 0;
+                } else {
+                    memory[datapointer] = old_value + 1;
+                }
+            },
+            "-" => {
+                let old_value = memory[datapointer];
+
+                if old_value == 0 {
+                    memory[datapointer] = 255;
+                } else {
+                    memory[datapointer] = old_value - 1;
+                }
+            },
+
+            "." => print!("{}", memory[datapointer] as char),
+
+            "," => {
+                println!("Enter some input: ");
+
+                let mut input = String::new();
+                io::stdin().read_line(&mut input)
+                    .expect("Error reading from stdin");
+                println!("input: {}", input);
+                memory[datapointer] = input.trim().parse::<u8>().unwrap();
+            },
+
+            "[" => {
+                if memory[datapointer] == 0 {
+                    let mut bracket_nesting = 1;
+                    let saved_pc = pc;
+
+                    pc+=1;
+                    while bracket_nesting > 0 && pc < program.instructions.len() {
+                        if program.instructions[pc] == "]" {
+                            bracket_nesting -= 1;
+                        } else if program.instructions[pc] == "[" {
+                            bracket_nesting += 1;
+                        }
+                        pc+=1;
+                    }
+
+                    if bracket_nesting > 0 {
+                        panic!("unmatched '[' at pc={}", saved_pc);
+                    }
+                }
+            },
+
+            "]" => {
+                if memory[datapointer] != 0 {
+                    let mut bracket_nesting = 1;
+                    let saved_pc = pc;
+
+                    while bracket_nesting > 0 && pc > 0 {
+                        pc -= 1;
+                        if program.instructions[pc] == "[" {
+                            bracket_nesting -= 1;
+                        } else if program.instructions[pc] == "]" {
+                            bracket_nesting += 1;
+                        }
+                    }
+
+                    if bracket_nesting > 0 {
+                        panic!("unmatched ']' at pc={}", saved_pc);
+                    }
+                }
+            },
+
+            c   => panic!("Bad character: {}", c)
+        }
+
+        pc+=1;
+    }
 }
