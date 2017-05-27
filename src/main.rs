@@ -72,7 +72,6 @@ fn main() {
     let program = Program::parse(input);
     let mut pc = 0;
     let memory_allocation = 30000;
-    let mut reserve = 1;
     let mut datapointer = 0;
     let mut memory: Vec<u8> = vec![0; memory_allocation];
 
@@ -83,13 +82,7 @@ fn main() {
         let ref instruction = program.instructions[pc];
 
         match instruction.as_ref() {
-            ">" => {
-                datapointer += 1;
-                if datapointer >= memory.len() {
-                    reserve += 1;
-                    memory.resize(memory_allocation*reserve, 0);
-                }
-            },
+            ">" => datapointer += 1,
             "<" => datapointer -= 1,
 
             "+" => {
@@ -114,13 +107,25 @@ fn main() {
             "." => print!("{}", memory[datapointer] as char),
 
             "," => {
-                println!("Enter some input: ");
+                // println!("Enter some input: ");
 
-                let mut input = String::new();
-                io::stdin().read_line(&mut input)
-                    .expect("Error reading from stdin");
-                println!("input: {}", input);
-                memory[datapointer] = input.trim().parse::<u8>().unwrap();
+                let mut human_input = String::new();
+                io::stdin().read_line(&mut human_input)
+                    .expect("Failed to read from stdin");
+                let bytes = human_input
+                    .bytes()
+                    .next()
+                    .map(|byte| byte as u8)
+                    .expect("Failed to read bytes");
+
+                println!("Got some bytes: {}", bytes);
+
+                memory[datapointer] = bytes;
+                //     .expect("Error reading from stdin");
+                // memory[datapointer] = human_input
+                //     .bytes()
+                //     .nth(0)
+                //     .expect("Error getting bytes");
             },
 
             "[" => {
