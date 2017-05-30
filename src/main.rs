@@ -5,8 +5,6 @@ use std::fmt;
 use std::env;
 use std::fs::File;
 
-// type Op = String;
-
 struct Program {
     instructions: Vec<String>,
 }
@@ -50,7 +48,16 @@ fn read_input_stream() -> String {
     handle.read_to_string(&mut input)
         .expect("Failed to read file");
 
-    // println!("Read in: {}", input);
+    input
+}
+
+fn read_file(file: &String) -> String {
+    let mut input = String::new();
+
+    File::open(file)
+        .expect("Unable to open file")
+        .read_to_string(&mut input)
+        .expect("Unable to read file");
 
     input
 }
@@ -58,23 +65,14 @@ fn read_input_stream() -> String {
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let mut input = String::new();
+    let input = if args.len() > 1 { read_file(&args[1]) } else { read_input_stream() };
 
-    if args.len() > 1 {
-        File::open(&args[1])
-            .expect("Unable to open file")
-            .read_to_string(&mut input)
-            .expect("Unable to read file");
-    } else {
-        input = read_input_stream();
-    }
     println!("Parsing");
     let program = Program::parse(input);
     let mut pc = 0;
     let memory_allocation = 30000;
     let mut datapointer = 0;
     let mut memory: Vec<u8> = vec![0; memory_allocation];
-
 
     println!("Running");
 
