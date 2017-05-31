@@ -74,8 +74,6 @@ fn main() {
     while pc < program.instructions.len() {
         let ref instruction = program.instructions[pc];
 
-        // println!("Running instruction: {}, memory: {}, datapointer: {}", instruction, memory[datapointer], datapointer);
-
         match instruction.as_ref() {
             ">" => datapointer += 1,
             "<" => datapointer -= 1,
@@ -104,29 +102,18 @@ fn main() {
             },
 
             "," => {
-                let mut human_input = String::new();
-                io::stdin().read_line(&mut human_input)
-                    .expect("Failed to read from stdin");
-                let bytes = human_input
+                let input = std::io::stdin()
                     .bytes()
                     .next()
+                    .and_then(|result| result.ok())
                     .map(|byte| byte as u8)
-                    .expect("Failed to read bytes");
+                    .expect("Failed to read from stdin");
 
-                // println!("Got some bytes: {}", bytes);
-
-                memory[datapointer] = bytes;
-                //     .expect("Error reading from stdin");
-                // memory[datapointer] = human_input
-                //     .bytes()
-                //     .nth(0)
-                //     .expect("Error getting bytes");
+                memory[datapointer] = input;
             },
 
             "[" => {
-                // println!("Found a [, {}", memory[datapointer]);
                 if memory[datapointer] == 0 {
-                    // println!("Searching");
                     let mut bracket_nesting = 1;
                     let saved_pc = pc;
 
@@ -142,15 +129,11 @@ fn main() {
                     if bracket_nesting != 0 {
                         panic!("unmatched '[' at pc={}", saved_pc);
                     }
-
-                    // println!("Found a match");
                 }
             },
 
             "]" => {
-                // println!("Found a ], {}", memory[datapointer]);
                 if memory[datapointer] != 0 {
-                    // println!("Searching...");
                     let mut bracket_nesting = 1;
                     let saved_pc = pc;
 
@@ -166,8 +149,6 @@ fn main() {
                     if bracket_nesting != 0 {
                         panic!("unmatched ']' at pc={}", saved_pc);
                     }
-
-                    // println!("Found a match")
                 }
             },
 
