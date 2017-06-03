@@ -4,5 +4,4 @@ version = "0.1.0"
 authors = ["Chris Keathley <c@keathley.io>"]
 
 [dependencies]
-
-rand="0.3.0"
+clap="2"

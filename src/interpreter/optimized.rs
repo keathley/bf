@@ -1,4 +1,5 @@
 use Program;
+use std::io::{self, Read};
 
 enum Op {
     IncPointer(usize),
@@ -11,20 +12,49 @@ enum Op {
     JumpIfDataNotZero {offset: usize},
 }
 
-fn gen_bytecode(instructions: Vec<String>) -> Vec<Op> {
+type Ops = Vec<Op>;
+
+fn bytecode_to_string(ops: &Ops) -> String {
+    ops.iter().map(|op| match op {
+        &Op::IncPointer(count) => format!("inc pointer: {}", count),
+        &Op::DecPointer(count) => format!("dec pointer: {}", count),
+        &Op::IncData(count) => format!("inc data: {}", count),
+        &Op::DecData(count) => format!("dec data: {}", count),
+        &Op::Read           => format!("reading"),
+        &Op::Write          => format!("writing"),
+        &Op::JumpIfDataZero{offset} => format!("Jumping to {}", offset),
+        &Op::JumpIfDataNotZero{offset} => format!("Jumping back to {}", offset)
+    })
+    .collect::<Vec<String>>()
+    .join("\n")
+}
+
+fn gen_bytecode(instructions: Vec<String>) -> Ops {
     let mut pc = 0;
     let mut bytecode = vec!();
+    let mut jumps = vec!();
 
     while pc < instructions.len() {
         match instructions[pc].as_ref() {
             "[" => {
+                jumps.push(bytecode.len());
+                bytecode.push(Op::JumpIfDataZero{offset: 0});
+                pc += 1;
             },
 
             "]" => {
+                if jumps.is_empty() {
+                    panic!("Unmatched closing ] at {}", pc);
+                }
+                let offset = jumps.pop().unwrap();
+                bytecode[offset] = Op::JumpIfDataZero{offset: bytecode.len()};
+                bytecode.push(Op::JumpIfDataNotZero{offset: offset});
+                pc += 1;
             },
 
             instruction => {
                 let start = pc;
+                pc += 1;
 
                 while pc < instructions.len() && instructions[pc] == instruction {
                     pc += 1;
@@ -37,15 +67,13 @@ fn gen_bytecode(instructions: Vec<String>) -> Vec<Op> {
                     "<" => Op::DecPointer(count),
                     "+" => Op::IncData(count as u8),
                     "-" => Op::DecData(count as u8),
-                    "." => Op::Read,
-                    "," => Op::Write,
+                    "." => Op::Write,
+                    "," => Op::Read,
                     _   => panic!("Cannot convert instruction to bytecode: {}", instruction),
                 };
                 bytecode.push(op);
             }
-
         }
-        pc += 1;
     }
 
     bytecode
@@ -75,7 +103,32 @@ pub fn run(program: Program) {
                 memory[datapointer] = (memory[datapointer] - count) % 255;
             },
 
-            _ => panic!("Not done yet"),
+            Op::JumpIfDataZero{offset} => {
+                if memory[datapointer] == 0 {
+                    pc = offset;
+                }
+            },
+
+            Op::JumpIfDataNotZero{offset} => {
+                if memory[datapointer] != 0 {
+                    pc = offset;
+                }
+            },
+
+            Op::Read => {
+                let input = io::stdin()
+                    .bytes()
+                    .next()
+                    .and_then(|result| result.ok())
+                    .map(|byte| byte as u8)
+                    .expect("Failed to read from stdin");
+
+                memory[datapointer] = input;
+            },
+
+            Op::Write => {
+                print!("{}", memory[datapointer] as char);
+            }
         }
 
         pc += 1;

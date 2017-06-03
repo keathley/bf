@@ -11,7 +11,7 @@ impl fmt::Display for Program {
 }
 
 impl Program {
-    pub fn parse(text: String) -> Program {
+    pub fn parse(text: &String) -> Program {
         let chars = text.split("")
             .map(|s| s.to_string())
             .filter(|s| Program::is_valid_symbol(&s))

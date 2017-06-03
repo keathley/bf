@@ -1,9 +1,11 @@
+extern crate clap;
+
+use clap::{App, Arg};
+use std::io::{self, Read};
+use std::fs::File;
+
 mod parser;
 mod interpreter;
-
-use std::io::{self, Read};
-use std::env;
-use std::fs::File;
 
 use parser::Program;
 
@@ -18,7 +20,7 @@ fn read_input_stream() -> String {
     input
 }
 
-fn read_file(file: &String) -> String {
+fn read_file(file: &str) -> String {
     let mut input = String::new();
 
     File::open(file)
@@ -30,9 +32,28 @@ fn read_file(file: &String) -> String {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let input = if args.len() > 1 { read_file(&args[1]) } else { read_input_stream() };
-    let program = Program::parse(input);
-    // interpreter::naive::run(program);
-    interpreter::optimized::run(program);
+    let matches = App::new("brainfuck")
+        .version("v1")
+        .author("Chris Keathley")
+        .about("A semi-optimized Brainfuck interpreter")
+        .arg(Arg::with_name("naive")
+             .short("n")
+             .long("naive-mode")
+             .help("Executes the code in naive mode"))
+        .arg(Arg::with_name("INPUT")
+            .help("Sets the input file to use")
+            .index(1))
+        .get_matches();
+
+    let input = match matches.value_of("INPUT") {
+        Some(file) => read_file(file),
+        None       => read_input_stream()
+    };
+    let program = Program::parse(&input);
+
+    if matches.is_present("naive") {
+        interpreter::naive::run(program);
+    } else {
+        interpreter::optimized::run(program);
+    };
 }
