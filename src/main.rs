@@ -4,10 +4,10 @@ use clap::{App, Arg};
 use std::io::{self, Read};
 use std::fs::File;
 
-mod parser;
+mod program;
 mod interpreter;
 
-use parser::Program;
+use program::Program;
 
 fn read_input_stream() -> String {
     let mut input = String::new();

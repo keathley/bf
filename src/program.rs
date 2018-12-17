@@ -1,7 +1,9 @@
 use std::fmt;
 
+pub type Tokens = Vec<String>;
+
 pub struct Program {
-    pub instructions: Vec<String>,
+    pub instructions: Tokens,
 }
 
 impl fmt::Display for Program {
